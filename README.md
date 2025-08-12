@@ -191,7 +191,6 @@ Implement a task dependency system that allows tasks to depend on other tasks. T
         -Backend ← Design
         -Frontend ← Design
         -Launch ← Backend
-        -Launch ← Frontend
 
 -You’ll see:
 
@@ -199,3 +198,8 @@ Implement a task dependency system that allows tasks to depend on other tasks. T
         -Frontend branch has Slack 1d.   
         -Graph shows two arrows into Launch; critical chain in red.
 
+-Example Output:
+
+![Image 1](images/demo1.jpg)
+
+![Image 2 scrolled](images/demo2.jpg)
