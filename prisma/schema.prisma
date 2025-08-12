@@ -16,6 +16,19 @@ model Todo {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt @default(now())
 
-  dependencies Todo[]    @relation("TaskDeps")
-  dependents   Todo[]    @relation("TaskDeps")
+  predecessors Dependency[]    @relation("ToDeps")
+  successors   Dependency[]    @relation("FromDeps")
+}
+
+model Dependency {
+  fromId Int
+  toId   Int
+
+  from   Todo @relation("FromDeps", fields: [fromId], references: [id], onDelete: Cascade)
+  to     Todo @relation("ToDeps",   fields: [toId],   references: [id], onDelete: Cascade)
+
+  // Prevent duplicates
+  @@id([fromId, toId])
+  // Fast lookups by child
+  @@index([toId])
 }

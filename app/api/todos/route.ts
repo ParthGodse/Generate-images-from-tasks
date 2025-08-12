@@ -18,7 +18,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { title, dueDate} = await request.json();
+    const { title, dueDate, durationDays} = await request.json();
     if (!title || title.trim() === '') {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
@@ -44,6 +44,7 @@ export async function POST(request: Request) {
         title,
         dueDate: dueDate ? new Date(dueDate) : null,
         imageUrl,
+        durationDays: Math.max(1, Number(durationDays ?? 1))
       },
     });
     return NextResponse.json(todo, { status: 201 });
