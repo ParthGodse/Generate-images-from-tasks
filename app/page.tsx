@@ -1,6 +1,6 @@
 "use client"
 // import { Todo } from '@prisma/client'; // Removed because '@prisma/client' has no exported member 'Todo'
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 
 type Todo = {
   id: number;
@@ -38,6 +38,15 @@ export default function Home() {
   const [imgLoading, setImgLoading] = useState<Record<number, boolean>>({});
   const [plan, setPlan] = useState<{ tasks: PlanTask[]; edges: Edge[]; projectDurationDays: number; projectStartDate: string; projectFinishDate: string } | null>(null);
   const [durationDays, setDurationDays] = useState<number>(1);
+  const [headerH, setHeaderH] = useState(0);
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+  const measure = () => setHeaderH(headerRef.current?.offsetHeight ?? 0);
+  measure();
+  window.addEventListener("resize", measure);
+  return () => window.removeEventListener("resize", measure);
+}, []);
 
   useEffect(() => {
     fetchTodos();
@@ -349,32 +358,40 @@ const Graph = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-500 to-red-500 flex flex-col items-center p-4">
-      <div className="w-full max-w-3xl">
-        <h1 className="text-4xl font-bold text-center text-white mb-4">Things To Do App</h1>
+  <div className="min-h-screen bg-gradient-to-b from-orange-500 to-red-500">
+    {/* Header */}
+    <header className="sticky top-0 z-10 backdrop-blur bg-orange-500/70 border-b">
+      <div ref={headerRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-xl sm:text-2xl font-semibold">Things To Do</h1>
 
-        {/* Project stats */}
-        {plan && (
-          <div className="mb-6 bg-white/90 rounded-lg p-4 shadow text-gray-800">
-            <div className="flex flex-wrap gap-4 text-sm">
-              <span><b>Project Start:</b> {fmt.format(new Date(plan.projectStartDate))}</span>
-              <span><b>Finish (earliest):</b> {fmt.format(new Date(plan.projectFinishDate))}</span>
-              <span><b>Duration:</b> {plan.projectDurationDays} day(s)</span>
+          {plan && (
+            <div className="hidden md:flex items-center gap-3 text-xs sm:text-sm text-gray-700">
+              <span className="px-2 py-1 rounded bg-gray-100 font-medium">
+                Project Start: {fmt.format(new Date(plan.projectStartDate))}
+              </span>
+              <span className="px-2 py-1 rounded bg-gray-100 font-medium">
+                Project Finish: {fmt.format(new Date(plan.projectFinishDate))}
+              </span>
+              <span className="px-2 py-1 rounded bg-gray-100 font-medium">
+                Project Duration: {plan.projectDurationDays}d
+              </span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        <div className="flex gap-2 mb-6">
+        {/* Quick add (wraps nicely on small screens) */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <input
             type="text"
-            className="flex-grow p-3 rounded-full focus:outline-none text-gray-700"
+            className="flex-1 min-w-[200px] p-3 rounded-full focus:outline-none text-gray-700 bg-white"
             placeholder="Add a new todo"
             value={newTodo}
             onChange={(e) => setNewTodo(e.target.value)}
           />
           <input
             type="date"
-            className="p-3 rounded-full text-gray-700"
+            className="p-3 rounded-full text-gray-700 bg-white"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
             aria-label="Due date"
@@ -382,7 +399,7 @@ const Graph = () => {
           <input
             type="number"
             min={1}
-            className="p-3 rounded-full text-gray-700 w-28"
+            className="p-3 rounded-full text-gray-700 w-28 bg-white"
             value={durationDays}
             onChange={(e) => setDurationDays(parseInt(e.target.value || "1", 10))}
             aria-label="Duration (days)"
@@ -390,132 +407,166 @@ const Graph = () => {
           />
           <button
             onClick={handleAddTodo}
-            className="bg-white text-indigo-600 p-3 rounded-full hover:bg-gray-100 transition duration-300"
+            className="bg-indigo-600 text-white px-5 py-3 rounded-full hover:bg-indigo-700 transition"
           >
             Add
           </button>
         </div>
+      </div>
+    </header>
 
-        {/* Graph */}
-        <div className="mb-6 bg-white/90 rounded-lg p-4 shadow">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-semibold text-gray-800">Dependency Graph</h2>
-            <GraphLegend />
+    {/* Main split view */}
+    <main style={{ scrollbarGutter: "stable both-edges" }} className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Graph panel (sticky) */}
+        <aside className="lg:col-span-7">
+          <div className="sticky top-[92px] bg-white/90 rounded-xl shadow p-4"
+            style={{ top: headerH ? headerH + 12 : 0 }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-semibold text-gray-900">Dependency Graph</h2>
+              <GraphLegend />
+            </div>
+            <div className="border rounded-lg bg-rose-50/40">
+              <Graph />
+            </div>
           </div>
-          <Graph />
-        </div>
+        </aside>
 
-        <ul>
-          {todos.map((todo) => {
-            const p = plan?.tasks.find(t => t.id === todo.id);
-            const overdue = isOverdue(todo.dueDate);
-            const es = p ? fmt.format(new Date(p.earliestStartDate)) : "-";
-            const ef = p ? fmt.format(new Date(p.earliestFinishDate)) : "-";
-            return (
-              <li key={todo.id} className="flex flex-col gap-3 bg-white/90 p-4 mb-4 rounded-lg shadow-lg">
-                <div className="flex justify-between items-start">
-                  <div className="flex flex-col">
-                    <span className="text-gray-800 font-medium">
-                      {todo.title}
-                      {p?.isCritical && <span className="ml-2 text-red-600 text-xs font-semibold">CRITICAL</span>}
-                    </span>
-                    <span className={`text-sm ${overdue ? "text-red-600 font-semibold" : "text-gray-500"}`}>
-                      {todo.dueDate ? `Due: ${fmt.format(new Date(todo.dueDate))}` : "No due date"}
-                    </span>
-                    {p && (
-                      <span className="text-xs text-gray-600">
-                        ES {es} · EF {ef} · Slack {p.slackDays}d
+        {/* Task list */}
+        <section className="lg:col-span-5">
+          <ul className="space-y-4">
+            {todos.map((todo) => {
+              const p = plan?.tasks.find((t) => t.id === todo.id);
+              const overdue = isOverdue(todo.dueDate);
+              const es = p ? fmt.format(new Date(p.earliestStartDate)) : "-";
+              const ef = p ? fmt.format(new Date(p.earliestFinishDate)) : "-";
+
+              return (
+                <li key={todo.id} className="flex flex-col gap-3 bg-white/90 p-4 rounded-lg shadow">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col">
+                      <span className="text-gray-800 font-medium">
+                        {todo.title}
+                        {p?.isCritical && (
+                          <span className="ml-2 text-red-600 text-xs font-semibold">CRITICAL</span>
+                        )}
                       </span>
+                      <span
+                        className={`text-sm ${
+                          overdue ? "text-red-600 font-semibold" : "text-gray-500"
+                        }`}
+                      >
+                        {todo.dueDate
+                          ? `Due: ${fmt.format(new Date(todo.dueDate))}`
+                          : "No due date"}
+                      </span>
+                      {p && (
+                        <span className="text-xs text-gray-600">
+                          ES {es} · EF {ef} · Slack {p.slackDays}d
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteTodo(todo.id)}
+                      className="text-red-500 hover:text-red-700 transition"
+                      aria-label="Delete Task"
+                      title="Delete Task"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Image */}
+                  <div className="w-full overflow-hidden rounded-md border border-gray-200">
+                    {todo.imageUrl ? (
+                      <div className="relative">
+                        {imgLoading[todo.id] && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
+                            <span className="text-gray-500 text-sm">Loading image…</span>
+                          </div>
+                        )}
+                        <img
+                          src={todo.imageUrl}
+                          alt={todo.title}
+                          className={`w-full h-48 object-cover transition-opacity duration-300 ${
+                            imgLoading[todo.id] ? "opacity-0" : "opacity-100"
+                          }`}
+                          onLoad={() => handleImageLoaded(todo.id)}
+                          onError={() => handleImageLoaded(todo.id)}
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full h-32 flex items-center justify-center text-gray-400 text-sm bg-gray-50">
+                        No image found
+                      </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleDeleteTodo(todo.id)}
-                    className="text-red-500 hover:text-red-700 transition duration-300"
-                    aria-label="Delete Task"
-                    title="Delete Task"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
 
-                {/* Image area */}
-                <div className="w-full overflow-hidden rounded-md border border-gray-200">
-                  {todo.imageUrl ? (
-                    <div className="relative">
-                      {imgLoading[todo.id] && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
-                          <span className="text-gray-500 text-sm">Loading image…</span>
-                        </div>
-                      )}
-                      <img
-                        src={todo.imageUrl}
-                        alt={todo.title}
-                        className={`w-full h-48 object-cover transition-opacity duration-300 ${imgLoading[todo.id] ? "opacity-0" : "opacity-100"}`}
-                        onLoad={() => handleImageLoaded(todo.id)}
-                        onError={() => handleImageLoaded(todo.id)}
-                        loading="lazy"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-full h-32 flex items-center justify-center text-gray-400 text-sm bg-gray-50">
-                      No image found
+                  {/* Dependencies editor */}
+                  {todos.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-600">
+                        Add dependency (must finish before this starts):
+                      </label>
+                      <select
+                        className="text-sm border rounded px-2 py-1 text-gray-800 bg-white"
+                        defaultValue=""
+                        onChange={(e) => {
+                          const fromId = parseInt(e.target.value);
+                          if (fromId) addDependency(fromId, todo.id);
+                          e.currentTarget.value = "";
+                        }}
+                      >
+                        <option value="">Select predecessor…</option>
+                        {todos
+                          .filter((t) => t.id !== todo.id)
+                          .map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.title}
+                            </option>
+                          ))}
+                      </select>
                     </div>
                   )}
-                </div>
 
-                {/* Add dependency: pick predecessor for this task */}
-                {todos.length > 1 && (
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-600">Add dependency (must finish before this starts):</label>
-                    <select
-                      className="text-sm border rounded px-2 py-1 text-gray-800 bg-white"
-                      defaultValue=""
-                      onChange={(e) => {
-                        const fromId = parseInt(e.target.value);
-                        if (fromId) addDependency(fromId, todo.id);
-                        e.currentTarget.value = "";
-                      }}
-                    >
-                      <option value="">Select predecessor…</option>
-                      {todos
-                        .filter(t => t.id !== todo.id)
-                        .map(t => <option key={t.id} value={t.id}>{t.title}</option>)
-                      }
-                    </select>
-                  </div>
-                )}
-
-                {/* Existing predecessors with remove buttons (from plan) */}
-                {plan && (
-                  <div className="text-xs text-gray-600">
-                    <b>Depends on:</b>{" "}
-                    {plan.edges
-                      .filter(e => e.to === todo.id)
-                      .map(e => {
-                        const pred = todos.find(t => t.id === e.from);
-                        return (
-                          <span key={`${e.from}-${e.to}`} className="inline-flex items-center gap-1 mr-2">
-                            {pred?.title ?? e.from}
-                            <button
-                              className="text-red-500 hover:text-red-700"
-                              title="Remove dependency"
-                              onClick={() => removeDependency(e.from, e.to)}
+                  {/* Existing predecessors */}
+                  {plan && (
+                    <div className="text-xs text-gray-600">
+                      <b>Depends on:</b>{" "}
+                      {plan.edges
+                        .filter((e) => e.to === todo.id)
+                        .map((e) => {
+                          const pred = todos.find((t) => t.id === e.from);
+                          return (
+                            <span
+                              key={`${e.from}-${e.to}`}
+                              className="inline-flex items-center gap-1 mr-2"
                             >
-                              ×
-                            </button>
-                          </span>
-                        );
-                      })}
-                    {plan.edges.every(e => e.to !== todo.id) && <span>None</span>}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                              {pred?.title ?? e.from}
+                              <button
+                                className="text-red-500 hover:text-red-700"
+                                title="Remove dependency"
+                                onClick={() => removeDependency(e.from, e.to)}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          );
+                        })}
+                      {plan.edges.every((e) => e.to !== todo.id) && <span>None</span>}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       </div>
-    </div>
-  );
+    </main>
+  </div>
+);
 }
