@@ -138,8 +138,11 @@ We convert YYYY-MM-DD → ISO before sending.
 -Multiple dependencies: via Dependency rows (many predecessors).
 
 -Prevent circular dependencies: wouldCreateCycle + topoSort on each POST.
+
 -Show the critical path: CPM marks zero-slack tasks and the graph highlights them.
+
 -Earliest possible start: ES computed from predecessors and mapped to dates.
+
 -Visualize the graph: SVG DAG with arrows, colors, legend.
 
 ## Quick demo scenario (to verify)
