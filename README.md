@@ -144,6 +144,7 @@ We convert YYYY-MM-DD → ISO before sending.
 ## Quick demo scenario (to verify)
 
 -Create tasks: Design (4d), Backend (3d), Frontend (2d), Launch (1d).
+
 -Add deps:
     -Backend ← Design
     -Frontend ← Design
