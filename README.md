@@ -200,6 +200,6 @@ Implement a task dependency system that allows tasks to depend on other tasks. T
 
 -Example Output:
 
-![Image 1](images/demo1.jpg)
+![Image 1](image/demo1.jpg)
 
-![Image 2 scrolled](images/demo2.jpg)
+![Image 2 scrolled](image/demo2.jpg)
