@@ -360,7 +360,7 @@ const Graph = () => {
   return (
   <div className="min-h-screen bg-gradient-to-b from-orange-500 to-red-500">
     {/* Header */}
-    <header className="sticky top-0 z-10 backdrop-blur bg-orange-500/70 border-b">
+    <header className="sticky top-0 z-10 backdrop-blur bg-gradient-to-b from-orange-500/70 to-red-500/70 border-b">
       <div ref={headerRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-xl sm:text-2xl font-semibold">Things To Do</h1>
